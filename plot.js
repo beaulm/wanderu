@@ -29,7 +29,7 @@ function initMap() {
 					missing += '<li>'+props[0]+' --> '+props[1]+'</li>';
 				}
 			}
-			else if(!station.hasOwnProperty(prop)) {
+			else if(station !== undefined && !station.hasOwnProperty(prop)) {
 				complete = false;
 				missing += '<li>'+prop+'</li>';
 			}
@@ -39,60 +39,60 @@ function initMap() {
 		var geocoder = new google.maps.Geocoder();
 		var address = station.address.street1+', '+station.address.city+', '+station.address.postal+', '+station.address.state+', '+station.address.country;
 		geocoder.geocode({'address': address}, function(results, status) {
-			if (status === 'OK') {
+			if(status === 'OK') {
 				if(Math.abs(results[0].geometry.location.lat()-station.loc.lat) > 0.1 || Math.abs(results[0].geometry.location.lng()-station.loc.lng) > 0.1) {
 					iconColor = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
 				}
 			} 
-			else {
+			else if(status !== 'OVER_QUERY_LIMIT') {
 				console.log('We couldn\'t verify the lat/lng for '+address+' for the following reason: ' + status);
 			}
-			//Start checking the next station
-			if(i < stations.length) {
-				if(status === 'OVER_QUERY_LIMIT') {
-					console.log('Oops, we\'re over our limit. We\'ll try this location again in a second');
-					setTimeout(addMarker, timeout);
-					return false;
-				}
-				else {
-					i++;
+			if(status === 'OVER_QUERY_LIMIT') {
+				console.log('Oops, we\'re over our limit. We\'ll try this location again in a second');
+				setTimeout(addMarker, 1000);
+				return false;
+			}
+			else {
+				//Start checking the next station
+				i++;
+				if(i < stations.length) {
 					setTimeout(addMarker, 100);
 				}
 			}
-		});
 
-		//Build the info window for this station
-		var infoWindowContent = '<h1>'+station.name+'</h1>'+
-								'<ul>'+
-									'<li><strong>wcityid:</strong> '+station.wcityid+'</li>'+
-									'<li><strong>wid:</strong> '+station.wid+'</li>'+
-									'<li><strong>address:</strong> '+address+'</li>'+
-									'<li><strong>timezone:</strong> '+station.timezone.local+'</li>';
-		//If this station has some codes
-		if(station.hasOwnProperty('codes') && station.codes.constructor === Array && station.codes.length > 0) {
-			//Go through each station
-			station.codes.forEach(function(code) {
-				infoWindowContent += '<li><strong>'+code.name+':</strong> '+code.value+'</li>';
+			//Build the info window for this station
+			var infoWindowContent = '<h1>'+station.name+'</h1>'+
+									'<ul>'+
+										'<li><strong>wcityid:</strong> '+station.wcityid+'</li>'+
+										'<li><strong>wid:</strong> '+station.wid+'</li>'+
+										'<li><strong>address:</strong> '+address+'</li>'+
+										'<li><strong>timezone:</strong> '+station.timezone.local+'</li>';
+			//If this station has some codes
+			if(station.hasOwnProperty('codes') && station.codes.constructor === Array && station.codes.length > 0) {
+				//Go through each station
+				station.codes.forEach(function(code) {
+					infoWindowContent += '<li><strong>'+code.name+':</strong> '+code.value+'</li>';
+				});
+			}
+			infoWindowContent += '</ul>';
+			if(!complete) {
+				infoWindowContent += missing+'</ul>';
+				iconColor = 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+			}
+
+			//Add it to the map
+			var marker = new google.maps.Marker({
+				position: station.loc,
+				map: map,
+				title: station.name,
+				icon: iconColor
 			});
-		}
-		infoWindowContent += '</ul>';
-		if(!complete) {
-			infoWindowContent += missing+'</ul>';
-			iconColor = 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
-		}
 
-		//Add it to the map
-		var marker = new google.maps.Marker({
-			position: station.loc,
-			map: map,
-			title: station.name,
-			icon: iconColor
-		});
-
-		//Add the click handler to show the info window when the user clicks on the marker
-		marker.addListener('click', function() {
-			infowindow.setContent(infoWindowContent);
-			infowindow.open(map, marker);
+			//Add the click handler to show the info window when the user clicks on the marker
+			marker.addListener('click', function() {
+				infowindow.setContent(infoWindowContent);
+				infowindow.open(map, marker);
+			});
 		});
 	};
 	addMarker();
