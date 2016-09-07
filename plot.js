@@ -38,24 +38,26 @@ function initMap() {
 		//Verify the lat/lng based on address
 		var geocoder = new google.maps.Geocoder();
 		var address = station.address.street1+', '+station.address.city+', '+station.address.postal+', '+station.address.state+', '+station.address.country;
-		var timeout = 100;
 		geocoder.geocode({'address': address}, function(results, status) {
 			if (status === 'OK') {
 				if(Math.abs(results[0].geometry.location.lat()-station.loc.lat) > 0.1 || Math.abs(results[0].geometry.location.lng()-station.loc.lng) > 0.1) {
 					iconColor = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
-					i++;
 				}
-			} else if(status === 'OVER_QUERY_LIMIT') {
-				console.log('Oops, we\'re over our limit. We\'ll try this location again in a second');
-				timeout = 1000;
-			}
+			} 
 			else {
 				console.log('We couldn\'t verify the lat/lng for '+address+' for the following reason: ' + status);
-				i++;
 			}
 			//Start checking the next station
 			if(i < stations.length) {
-				setTimeout(addMarker, timeout);
+				if(status === 'OVER_QUERY_LIMIT') {
+					console.log('Oops, we\'re over our limit. We\'ll try this location again in a second');
+					setTimeout(addMarker, timeout);
+					return false;
+				}
+				else {
+					i++;
+					setTimeout(addMarker, 100);
+				}
 			}
 		});
 
